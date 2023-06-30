@@ -3,6 +3,7 @@ import {Text, Box, useInput} from 'ink';
 import Gradient from 'ink-gradient';
 import TextInput from 'ink-text-input';
 import BigText from 'ink-big-text';
+import figures from './figures.js';
 
 type Props = {
 	isBannerDisabled?: boolean;
@@ -16,7 +17,14 @@ type Subject = 'VOWELS' | 'CONSONANTS';
 const wordsSuite = [
 	['coal', 'attention', 'deliberation', 'evasion', 'relation', 'vagary'],
 	['drain', 'moisture', 'surprise', 'glove', 'fatherhood', 'exposition'],
-	['testimony', 'attention', 'affliction', 'absence', 'instructor', 'statement'],
+	[
+		'testimony',
+		'attention',
+		'affliction',
+		'absence',
+		'instructor',
+		'statement',
+	],
 ];
 
 const defaultWords = wordsSuite[0];
@@ -34,7 +42,7 @@ const hideWord = (word: string): string => {
 
 const charIsVowel = (char: string) => {
 	const charLower = char.toLowerCase();
-	return ['a', 'e', 'i', 'o', 'u'].includes(charLower);
+	return ['a', 'e', 'i', 'o', 'u', 'y'].includes(charLower);
 };
 
 const getVowelCount = (word: string): number => {
@@ -84,6 +92,7 @@ export default function App({
 }: Props) {
 	const [showBanner, setShowBanner] = useState(!isBannerDisabled);
 	const [answer, setAnswer] = useState('');
+	const [consonantsAnswer, setConsonantsAnswer] = useState('');
 	const [scores, setScores] = useState(0);
 	const [padLeft, setPadLeft] = useState(0);
 	const [gameOver, setGameOver] = useState(false);
@@ -91,6 +100,8 @@ export default function App({
 	const [gameSpeed, setGameSpeed] = useState(calculateSpeedInMs(speed));
 	const [isChangingSpeed, setIsChangingSpeed] = useState(false);
 	const [addComplication, setAddComplication] = useState(hasExtraComplication);
+	const [vowelCountIsCorrect, setVowelCountIsCorrect] = useState(false);
+	const [consonantCountIsCorrect, setConsonantCountIsCorrect] = useState(false);
 	const [newChangingSpeedValue, setNewChangingSpeedValue] = useState(
 		String(speed),
 	);
@@ -107,6 +118,10 @@ export default function App({
 		setRoundWords(wordsSuite[Math.floor(Math.random() * wordsSuite.length)]!);
 		setPadLeft(0);
 		setScores(0);
+		setVowelCountIsCorrect(false);
+		setConsonantCountIsCorrect(false);
+		setAnswer('');
+		setConsonantsAnswer('');
 	};
 
 	useEffect(() => {
@@ -125,7 +140,11 @@ export default function App({
 					return previousIndex + 1;
 				});
 				setCurrentSubject('VOWELS');
+				setAnswer('');
+				setConsonantsAnswer('');
 				setPadLeft(0);
+				setVowelCountIsCorrect(false);
+				setConsonantCountIsCorrect(false);
 			} else {
 				setPadLeft(previousP => {
 					return previousP + 1;
@@ -137,14 +156,14 @@ export default function App({
 			if (showBanner) {
 				setShowBanner(false);
 			}
-		}, 1900);
+		}, 1400);
 
 		return () => {
 			clearInterval(appInterval);
 		};
 	}, [currentIndex, padLeft, gameSpeed, roundWords, showBanner]);
 
-	useInput((input, _key) => {
+	useInput((input, key) => {
 		if (gameOver) {
 			switch (input) {
 				case 'n': {
@@ -166,6 +185,8 @@ export default function App({
 				}
 				// No default
 			}
+		} else if (key.tab) {
+			setCurrentSubject(isVowelSubject() ? 'CONSONANTS' : 'VOWELS');
 		}
 	});
 
@@ -177,6 +198,11 @@ export default function App({
 	const getCurrentWordUpper = (): string => {
 		return getCurrentWord().toUpperCase();
 	};
+
+	const isVowelSubject = (): boolean => currentSubject === 'VOWELS';
+
+	const Success = <Text color="green"> {figures.tick}</Text>;
+	const Pointer = <Text color="cyan">{figures.pointer} </Text>;
 
 	return showBanner ? (
 		<Box flexDirection="column" alignItems="center">
@@ -216,12 +242,10 @@ export default function App({
 							}
 						}}
 					/>
-					<Text> s</Text>
 				</Box>
 			</Box>
 		) : (
 			<Box flexDirection="column">
-				<Text>Game is over</Text>
 				<Text>
 					<Text color="green">Result:</Text> {scores} of {roundWords.length}
 				</Text>
@@ -256,9 +280,6 @@ export default function App({
 		)
 	) : (
 		<Box flexDirection="column">
-			<Box paddingBottom={1}>
-				<Text>Score: {scores}</Text>
-			</Box>
 			<Box paddingLeft={padLeft} flexDirection="column">
 				<Text>
 					{addComplication
@@ -270,40 +291,94 @@ export default function App({
 						: getCurrentWordUpper()}
 				</Text>
 			</Box>
-			<Box paddingTop={2}>
-				<Text>{currentSubject}: </Text>
-				<TextInput
-					focus
-					value={answer}
-					onChange={setAnswer}
-					onSubmit={va => {
-						const userAnswer = Number(va);
-						const currentRoundWord = roundWords[currentIndex]!;
-						const correctCount =
-							currentSubject === 'VOWELS'
-								? getVowelCount(currentRoundWord)
-								: getConsonantCount(currentRoundWord);
+			<Box
+				width={process.stdout.columns}
+				alignItems="center"
+				justifyContent="space-around"
+				paddingTop={2}
+			>
+				<Box>
+					<Text>
+						<Text color={isVowelSubject() ? 'cyan' : ''}>VOWELS</Text>:{' '}
+						{isVowelSubject() && Pointer}
+					</Text>
+					<TextInput
+						focus={currentSubject === 'VOWELS'}
+						value={answer}
+						onChange={setAnswer}
+						onSubmit={va => {
+							const userAnswer = Number(va);
+							const currentRoundWord = roundWords[currentIndex]!;
+							const correctCount = getVowelCount(currentRoundWord);
 
-						if (userAnswer === correctCount) {
-							if (currentSubject === 'VOWELS') {
-								setCurrentSubject('CONSONANTS');
-								setAnswer('');
-							} else {
-								setScores(scores + 1);
-								setCurrentSubject('VOWELS');
-								setPadLeft(0);
-								if (currentIndex >= roundWords.length - 1) {
-									setGameOver(true);
+							if (userAnswer === correctCount) {
+								if (consonantCountIsCorrect) {
+									if (currentIndex >= roundWords.length - 1) {
+										setGameOver(true);
+										setConsonantsAnswer('');
+										return;
+									}
+
+									setScores(scores + 1);
+									setCurrentIndex(currentIndex + 1);
+									setVowelCountIsCorrect(false);
+									setPadLeft(0);
 									setAnswer('');
-									return;
+									setConsonantsAnswer('');
+									setConsonantCountIsCorrect(false);
+								} else {
+									setCurrentSubject('CONSONANTS');
+									setVowelCountIsCorrect(true);
 								}
-
-								setCurrentIndex(currentIndex + 1);
-								setAnswer('');
 							}
-						}
-					}}
-				/>
+						}}
+					/>
+					{vowelCountIsCorrect && Success}
+				</Box>
+				<Box>
+					<Text>
+						<Text color={isVowelSubject() ? '' : 'cyan'}>CONSONANTS</Text>:{' '}
+						{!isVowelSubject() && Pointer}
+					</Text>
+					<TextInput
+						focus={currentSubject === 'CONSONANTS'}
+						value={consonantsAnswer}
+						onChange={setConsonantsAnswer}
+						onSubmit={va => {
+							const userAnswer = Number(va);
+							const currentRoundWord = roundWords[currentIndex]!;
+							const correctCount = getConsonantCount(currentRoundWord);
+
+							if (userAnswer === correctCount) {
+								if (vowelCountIsCorrect) {
+									if (currentIndex >= roundWords.length - 1) {
+										setGameOver(true);
+										setConsonantsAnswer('');
+										return;
+									}
+
+									setScores(scores + 1);
+									setCurrentSubject('VOWELS');
+									setCurrentIndex(currentIndex + 1);
+									setConsonantCountIsCorrect(false);
+									setVowelCountIsCorrect(false);
+									setConsonantsAnswer('');
+									setPadLeft(0);
+									setAnswer('');
+								} else {
+									setConsonantCountIsCorrect(true);
+									setCurrentSubject('VOWELS');
+								}
+							}
+						}}
+					/>
+					{consonantCountIsCorrect && Success}
+				</Box>
+				<Box justifyContent="flex-end">
+					<Text color="#adefd1" backgroundColor="#00203f">
+						SCORE: {scores}
+					</Text>
+				</Box>
 			</Box>
 		</Box>
 	);
