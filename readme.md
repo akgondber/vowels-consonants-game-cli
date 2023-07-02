@@ -27,6 +27,10 @@ $ vowels-consonants-game-cli --help
     $ count-vowels-consonants-in-escaping-word-cli --speed 3 --complicate
 ```
 
+## Usage
+
+![](media/demo.gif)
+
 ## License
 
 MIT © [Rushan Alyautdinov](https://github.com/akgondber)

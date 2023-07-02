@@ -10,8 +10,8 @@ type Props = {
 	speed?: number;
 	hasExtraComplication?: boolean;
 };
-
 type Subject = 'VOWELS' | 'CONSONANTS';
+type InputState = 'WAITING' | 'WRONG' | 'CORRECT';
 
 const wordsSuite = [
 	[
@@ -85,9 +85,11 @@ const wordsSuite = [
 		'squeezer',
 		'juicer',
 	],
+	['performance', 'score', 'tournament', 'umpire', 'arena', 'fitness'],
 ];
 
 const defaultWords = wordsSuite[0];
+const nextIterationDelay = 800;
 
 const hideWord = (word: string): string => {
 	let result = '';
@@ -139,19 +141,32 @@ const isNumeric = (value: string): boolean =>
 	!Number.isNaN(value as any) && !Number.isNaN(Number.parseFloat(value));
 
 const calculateSpeedInMs = (speed: number) => {
-	return (speed / 10) * 150;
+	return ((speed + 2) / 10) * 150;
+};
+
+const range = (start: number, stop: number): number[] => {
+	const result = [];
+
+	for (let i = start; i < stop; i++) {
+		result.push(i);
+	}
+
+	return result;
+};
+
+const rand = (max: number): number => {
+	return Math.floor(Math.random() * max);
 };
 
 export {isNumeric, hideWord};
 
-/* eslint-disable complexity */
 export default function App({
 	isBannerDisabled = false,
 	words,
 	speed = 3,
 	hasExtraComplication = false,
 }: Props) {
-	const [answer, setAnswer] = useState('');
+	const [vowelsAnswer, setVowelsAnswer] = useState('');
 	const [consonantsAnswer, setConsonantsAnswer] = useState('');
 	const [scores, setScores] = useState(0);
 	const [padLeft, setPadLeft] = useState(0);
@@ -160,10 +175,6 @@ export default function App({
 	const [gameSpeed, setGameSpeed] = useState(calculateSpeedInMs(speed));
 	const [isChangingSpeed, setIsChangingSpeed] = useState(false);
 	const [addComplication, setAddComplication] = useState(hasExtraComplication);
-	const [vowelCountIsCorrect, setVowelCountIsCorrect] = useState(false);
-	const [vowelsIsSubmitted, setVowelsIsSubmitted] = useState(false);
-	const [consonantCountIsCorrect, setConsonantCountIsCorrect] = useState(false);
-	const [consonantsIsSubmitted, setConsonantsIsSubmitted] = useState(false);
 	const [isRunning, setIsRunning] = useState(false);
 	const [newChangingSpeedValue, setNewChangingSpeedValue] = useState(
 		String(speed),
@@ -175,13 +186,29 @@ export default function App({
 	const [currentGameRound, setCurrentGameRound] = useState(0);
 
 	const showBanner = !isBannerDisabled;
-	const [passedRounds, setPassedRounds] = useState(0);
+	const [freeIterationIndexes, setFreeIterationIndexes] = useState(
+		range(0, wordsSuite.length),
+	);
+	const [vowelInputState, setVowelInputState] = useState<InputState>('WAITING');
+	const [consonantInputState, setConsonantInputState] =
+		useState<InputState>('WAITING');
 
 	const startNewRound = () => {
 		const newRoundIndex =
-			passedRounds === wordsSuite.length - 1 ? 0 : passedRounds + 1;
+			freeIterationIndexes.length === 0
+				? rand(wordsSuite.length)
+				: Math.floor(Math.random() * freeIterationIndexes.length);
 
-		setPassedRounds(newRoundIndex);
+		setFreeIterationIndexes(previousFreeIterationIndexes => {
+			if (freeIterationIndexes.length === 0) {
+				return range(0, wordsSuite.length);
+			}
+
+			return previousFreeIterationIndexes.filter(
+				value => value !== newRoundIndex,
+			);
+		});
+
 		setIsRunning(true);
 		setGameOver(false);
 		setCurrentIndex(0);
@@ -189,24 +216,20 @@ export default function App({
 		setRoundWords(wordsSuite[newRoundIndex]!);
 		setPadLeft(0);
 		setScores(0);
-		setAnswer('');
-		setVowelCountIsCorrect(false);
-		setVowelsIsSubmitted(false);
-		setConsonantCountIsCorrect(false);
-		setConsonantsIsSubmitted(false);
+		setVowelsAnswer('');
+		setConsonantsAnswer('');
 		setConsonantsAnswer('');
 		setCurrentGameRound(newRoundIndex === 0 ? 1 : currentGameRound + 1);
 	};
 
-	const resetIterationFields = () => {
-		setCurrentIndex(previousIndex => previousIndex + 1);
-		setVowelCountIsCorrect(false);
+	const setIterationFields = () => {
 		setPadLeft(0);
-		setAnswer('');
+		setVowelsAnswer('');
 		setConsonantsAnswer('');
-		setConsonantCountIsCorrect(false);
-		setVowelsIsSubmitted(false);
-		setConsonantsIsSubmitted(false);
+		setCurrentSubject('VOWELS');
+		setCurrentIndex(currentIndex + 1);
+		setVowelInputState('WAITING');
+		setConsonantInputState('WAITING');
 	};
 
 	useEffect(() => {
@@ -223,9 +246,15 @@ export default function App({
 						return;
 					}
 
-					resetIterationFields();
-
+					setVowelInputState('WAITING');
+					setConsonantInputState('WAITING');
+					setPadLeft(0);
+					setVowelsAnswer('');
+					setConsonantsAnswer('');
 					setCurrentSubject('VOWELS');
+					setCurrentIndex(currentIndex + 1);
+					setVowelInputState('WAITING');
+					setConsonantInputState('WAITING');
 				} else {
 					setPadLeft(previousPadLeft => previousPadLeft + 1);
 				}
@@ -235,7 +264,17 @@ export default function App({
 				clearInterval(roundInterval);
 			};
 		}
-	}, [padLeft, currentIndex, gameSpeed, isRunning, roundWords]);
+	}, [
+		padLeft,
+		currentIndex,
+		gameSpeed,
+		isRunning,
+		vowelsAnswer,
+		consonantsAnswer,
+		roundWords,
+		vowelInputState,
+		consonantInputState,
+	]);
 
 	useInput((input, key) => {
 		if (gameOver) {
@@ -275,6 +314,9 @@ export default function App({
 	};
 
 	const isVowelSubject = (): boolean => currentSubject === 'VOWELS';
+	const allSubjectsAreCorrect = () => {
+		return vowelInputState === 'CORRECT' && consonantInputState === 'CORRECT';
+	};
 
 	const SuccessIndicator = <Text color="green">{` ${figures.tick}`}</Text>;
 	const ErrorIndicator = <Text color="red">{` ${figures.cross}`}</Text>;
@@ -329,10 +371,10 @@ export default function App({
 				) : (
 					<Box flexDirection="column">
 						<Box flexDirection="column">
-							{currentGameRound > -1 ? (
+							{currentGameRound > 0 ? (
 								<Text>
 									<Text color="#c7d3d4" backgroundColor="#603f83">
-										Result:
+										RESULT:
 									</Text>
 									<Text>
 										{' '}
@@ -341,7 +383,7 @@ export default function App({
 								</Text>
 							) : (
 								<Text>
-									Count up vowels and consonants in the escaping word.
+									Count up vowels and consonants of the escaping word.
 								</Text>
 							)}
 						</Box>
@@ -358,7 +400,11 @@ export default function App({
 									<Text bold color="cyan">
 										s
 									</Text>
-									<Text> - change game speed</Text>
+									<Text>
+										{' '}
+										- change game speed (the lower the value, the more difficult
+										the passage; current: {newChangingSpeedValue})
+									</Text>
 								</Box>
 								<Box>
 									<Text bold color="magenta">
@@ -395,78 +441,111 @@ export default function App({
 					>
 						<Box>
 							<Text>
-								<Text color={isVowelSubject() ? 'cyan' : ''}>VOWELS</Text>:{' '}
+								<Text color="#d7c49e">VOWELS</Text>:{' '}
 								{isVowelSubject() && PointerSymbol}
 							</Text>
 							<TextInput
 								focus={currentSubject === 'VOWELS'}
-								value={answer}
-								onChange={setAnswer}
-								onSubmit={va => {
-									setVowelsIsSubmitted(true);
-									const userAnswer = Number(va);
+								value={vowelsAnswer}
+								onChange={value => {
+									if (allSubjectsAreCorrect()) {
+										return;
+									}
+
+									setVowelsAnswer(value);
+
+									setVowelInputState('WAITING');
+								}}
+								onSubmit={value => {
+									setVowelInputState('WAITING');
+
+									const userAnswer = Number(value);
 									const currentRoundWord = roundWords[currentIndex]!;
 									const correctCount = getVowelCount(currentRoundWord);
 
 									if (userAnswer === correctCount) {
-										if (consonantCountIsCorrect) {
+										setVowelInputState('CORRECT');
+
+										if (consonantInputState === 'CORRECT') {
 											if (currentIndex >= roundWords.length - 1) {
-												setGameOver(true);
-												setConsonantsAnswer('');
-												setIsRunning(false);
+												setTimeout(() => {
+													setVowelInputState('WAITING');
+													setConsonantInputState('WAITING');
+													setGameOver(true);
+												}, nextIterationDelay);
+
 												return;
 											}
 
 											setScores(scores + 1);
-											resetIterationFields();
+											setTimeout(() => {
+												setIterationFields();
+											}, 100);
 										} else {
 											setCurrentSubject('CONSONANTS');
-											setVowelCountIsCorrect(true);
 										}
+									} else {
+										setVowelInputState('WRONG');
 									}
 								}}
 							/>
-							{vowelCountIsCorrect
-								? SuccessIndicator
-								: vowelsIsSubmitted && ErrorIndicator}
+							{vowelInputState !== 'WAITING' &&
+								(vowelInputState === 'WRONG'
+									? ErrorIndicator
+									: SuccessIndicator)}
 						</Box>
 						<Box>
 							<Text>
-								<Text color={isVowelSubject() ? '' : 'cyan'}>CONSONANTS</Text>:{' '}
+								<Text color="#f2edd7">CONSONANTS</Text>:{' '}
 								{!isVowelSubject() && PointerSymbol}
 							</Text>
 							<TextInput
 								focus={currentSubject === 'CONSONANTS'}
 								value={consonantsAnswer}
-								onChange={setConsonantsAnswer}
+								onChange={value => {
+									if (allSubjectsAreCorrect()) {
+										return;
+									}
+
+									setConsonantsAnswer(value);
+									setConsonantInputState('WAITING');
+								}}
 								onSubmit={value => {
-									setConsonantsIsSubmitted(true);
+									setConsonantInputState('WAITING');
 									const userAnswer = Number(value);
 									const currentRoundWord = roundWords[currentIndex]!;
 									const correctCount = getConsonantCount(currentRoundWord);
 
 									if (userAnswer === correctCount) {
-										if (vowelCountIsCorrect) {
+										setConsonantInputState('CORRECT');
+
+										if (vowelInputState === 'CORRECT') {
 											if (currentIndex >= roundWords.length - 1) {
-												setGameOver(true);
-												setConsonantsAnswer('');
-												setIsRunning(false);
+												setTimeout(() => {
+													setConsonantInputState('WAITING');
+													setVowelInputState('WAITING');
+													setGameOver(true);
+												}, 100);
+
 												return;
 											}
 
 											setScores(scores + 1);
-											resetIterationFields();
+											setTimeout(() => {
+												setIterationFields();
+											}, nextIterationDelay);
 										} else {
-											setConsonantCountIsCorrect(true);
+											setCurrentSubject('VOWELS');
 										}
-
-										setCurrentSubject('VOWELS');
+									} else {
+										setConsonantInputState('WRONG');
 									}
 								}}
 							/>
-							{consonantCountIsCorrect
-								? SuccessIndicator
-								: consonantsIsSubmitted && ErrorIndicator}
+							{consonantInputState !== 'WAITING' &&
+								(consonantInputState === 'WRONG'
+									? ErrorIndicator
+									: SuccessIndicator)}
 						</Box>
 						<Box alignItems="flex-end">
 							<Text color="#adefd1" backgroundColor="#00203f">
@@ -479,4 +558,3 @@ export default function App({
 		</>
 	);
 }
-/* eslint-enable complexity */
