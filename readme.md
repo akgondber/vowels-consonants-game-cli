@@ -13,23 +13,38 @@ $ npm install --global vowels-consonants-game-cli
 ```
 $ vowels-consonants-game-cli --help
 
+  Count vowels and consonants in the escaping word
+
   Usage
     $ vowels-consonants-game-cli
 
   Options
-        --noBanner  Whether to use banner when starting
-        --speed      Game speed (the lower the value, the more difficult the passage)
-        --complicate Add extra complication
+        --speed           Game speed (the lower the value, the more difficult the passage)
+        --complicate      Add extra complication
+        --url             Optional url source with words suite (when no provided default suite will be used)
+        --no-show-banner  Whether to use banner at the top
 
   Examples
-    $ count-vowels-consonants-in-escaping-word-cli --no-show-banner
-    $ count-vowels-consonants-in-escaping-word-cli --speed 4
-    $ count-vowels-consonants-in-escaping-word-cli --speed 3 --complicate
+    $ vowels-consonants-game-cli --speed 4
+    $ vowels-consonants-game-cli --no-show-banner
+    $ vowels-consonants-game-cli --speed 3 --complicate
+    $ vowels-consonants-game-cli --speed 3 --url https://gist.githubusercontent.com/akgondber/3a1da5cb02ba0f6f61f14cffd0ae93f2/raw/1835ade2290657acd3b544ea92d7eaf1aeabab9b/words.txt
 ```
 
-## Usage
+## Demo
 
 ![](media/demo.gif)
+
+## Suites
+
+There is a possibility to use words suite from a url. To use this option provide `--url` or `--words-suite-url` argument with an appropriate http link as a source of suite.
+
+Some available http sources:
+
+- [`words-from-how-i-edited-an-agricultural-paper-by-m-twain`](https://gist.githubusercontent.com/akgondber/3e8f2064ddcf4c3b3379f1b1b5027b1f/raw/22975c42502c61e4b4077424552708dc59876d32/words.txt)
+- [`words-from-the-spook-house-by-ambrose-bierce`](https://gist.githubusercontent.com/akgondber/3a1da5cb02ba0f6f61f14cffd0ae93f2/raw/1835ade2290657acd3b544ea92d7eaf1aeabab9b/words.txt)
+
+You can create your own suites creating a gist (or any other hosting service you prefer), using any of the above links as an example.
 
 ## License
 

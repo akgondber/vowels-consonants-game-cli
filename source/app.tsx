@@ -6,14 +6,15 @@ import figures from './figures.js';
 
 type Props = {
 	isBannerDisabled?: boolean;
-	words?: string[];
+	suite?: string[][];
 	speed?: number;
 	hasExtraComplication?: boolean;
 };
 type Subject = 'VOWELS' | 'CONSONANTS';
 type InputState = 'WAITING' | 'WRONG' | 'CORRECT';
+type WordsSuite = string[][];
 
-const wordsSuite = [
+const defaultWordsSuite = [
 	[
 		'coal',
 		'attention',
@@ -88,8 +89,8 @@ const wordsSuite = [
 	['performance', 'score', 'tournament', 'umpire', 'arena', 'fitness'],
 ];
 
-const defaultWords = wordsSuite[0];
-const nextIterationDelay = 800;
+const nextIterationDelay = 200;
+let wordsSuite: WordsSuite;
 
 const hideWord = (word: string): string => {
 	let result = '';
@@ -158,11 +159,47 @@ const rand = (max: number): number => {
 	return Math.floor(Math.random() * max);
 };
 
-export {isNumeric, hideWord};
+const englishChars = new Set(
+	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+);
+const includesEnglishChars = (word: string) =>
+	[...word].some((char: string) => englishChars.has(char));
+
+const filterWordsSuite = (value: WordsSuite): WordsSuite => {
+	const result = [];
+
+	for (const items of value) {
+		const filteredItems = items.filter(item => includesEnglishChars(item));
+
+		if (filteredItems.length > 0) result.push(filteredItems);
+	}
+
+	return result;
+};
+
+const isValidWordsSuite = (value: WordsSuite): boolean => {
+	if (value.length === 0) {
+		return false;
+	}
+
+	for (const items of value) {
+		if (items.length === 0) {
+			return false;
+		}
+
+		if (items.some(item => !includesEnglishChars(item))) {
+			return false;
+		}
+	}
+
+	return true;
+};
+
+export {isNumeric, hideWord, includesEnglishChars};
 
 export default function App({
 	isBannerDisabled = false,
-	words,
+	suite,
 	speed = 3,
 	hasExtraComplication = false,
 }: Props) {
@@ -181,7 +218,18 @@ export default function App({
 	);
 	const [currentSubject, setCurrentSubject] = useState<Subject>('VOWELS');
 	const [error, setError] = useState('');
-	const gameRoundWords = words && words.length > 0 ? words : defaultWords!;
+
+	if (!suite || suite.length === 0) {
+		wordsSuite = defaultWordsSuite;
+	} else {
+		wordsSuite = filterWordsSuite(suite);
+
+		if (!isValidWordsSuite(wordsSuite)) {
+			wordsSuite = defaultWordsSuite;
+		}
+	}
+
+	const gameRoundWords = wordsSuite[rand(wordsSuite.length)]!;
 	const [roundWords, setRoundWords] = useState<string[]>(gameRoundWords);
 	const [currentGameRound, setCurrentGameRound] = useState(0);
 
@@ -383,7 +431,7 @@ export default function App({
 								</Text>
 							) : (
 								<Text>
-									Count up vowels and consonants of the escaping word.
+									Count up vowels and consonants in the escaping word.
 								</Text>
 							)}
 						</Box>
@@ -467,20 +515,19 @@ export default function App({
 										setVowelInputState('CORRECT');
 
 										if (consonantInputState === 'CORRECT') {
+											setScores(scores + 1);
 											if (currentIndex >= roundWords.length - 1) {
-												setTimeout(() => {
-													setVowelInputState('WAITING');
-													setConsonantInputState('WAITING');
-													setGameOver(true);
-												}, nextIterationDelay);
+												setVowelInputState('WAITING');
+												setConsonantInputState('WAITING');
+												setGameOver(true);
 
 												return;
 											}
 
-											setScores(scores + 1);
+											setIterationFields();
 											setTimeout(() => {
 												setIterationFields();
-											}, 100);
+											}, nextIterationDelay);
 										} else {
 											setCurrentSubject('CONSONANTS');
 										}
@@ -520,17 +567,16 @@ export default function App({
 										setConsonantInputState('CORRECT');
 
 										if (vowelInputState === 'CORRECT') {
+											setScores(scores + 1);
+
 											if (currentIndex >= roundWords.length - 1) {
-												setTimeout(() => {
-													setConsonantInputState('WAITING');
-													setVowelInputState('WAITING');
-													setGameOver(true);
-												}, 100);
+												setConsonantInputState('WAITING');
+												setVowelInputState('WAITING');
+												setGameOver(true);
 
 												return;
 											}
 
-											setScores(scores + 1);
 											setTimeout(() => {
 												setIterationFields();
 											}, nextIterationDelay);
