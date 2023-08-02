@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Text, Box, useInput} from 'ink';
 import Gradient from 'ink-gradient';
 import TextInput from 'ink-text-input';
+import {IflessString} from 'ifless';
 import figures from './figures.js';
 
 type Props = {
@@ -103,19 +104,11 @@ const hideWord = (word: string): string => {
 	return result;
 };
 
-const charIsVowel = (char: string) => {
-	const charLower = char.toLowerCase();
-	return ['a', 'e', 'i', 'o', 'u', 'y'].includes(charLower);
-};
-
 const getVowelCount = (word: string): number => {
 	let result = 0;
 
 	for (const char of word) {
-		if (
-			((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')) &&
-			charIsVowel(char)
-		) {
+		if (new IflessString(char).isEnglishVowelChar()) {
 			result += 1;
 		}
 	}
@@ -127,10 +120,7 @@ const getConsonantCount = (word: string): number => {
 	let result = 0;
 
 	for (const char of word) {
-		if (
-			((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')) &&
-			!charIsVowel(char)
-		) {
+		if (new IflessString(char).isEnglishConsonantChar()) {
 			result += 1;
 		}
 	}
