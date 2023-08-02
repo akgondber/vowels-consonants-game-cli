@@ -35,6 +35,16 @@ $ vowels-consonants-game-cli --help
 
 ![](media/demo.gif)
 
+## Screenshots
+
+Running round example using the following command:
+
+```
+vowels-consonants-game --url https://gist.githubusercontent.com/akgondber/5fc76ad2b737eea9dce73362381d9e3b/raw/eaec998fbd636a42d9387829204b7bf04949e78f/words.txt
+```
+
+![running-round](media/vowels-consonants-game-screenshot.png)
+
 ## Suites
 
 There is a possibility to use words suite from a url. To use this option provide `--url` or `--words-suite-url` argument with an appropriate http link as a source of suite.
@@ -43,6 +53,8 @@ Some available http sources:
 
 - [`words-from-how-i-edited-an-agricultural-paper-by-m-twain`](https://gist.githubusercontent.com/akgondber/3e8f2064ddcf4c3b3379f1b1b5027b1f/raw/22975c42502c61e4b4077424552708dc59876d32/words.txt)
 - [`words-from-the-spook-house-by-ambrose-bierce`](https://gist.githubusercontent.com/akgondber/3a1da5cb02ba0f6f61f14cffd0ae93f2/raw/1835ade2290657acd3b544ea92d7eaf1aeabab9b/words.txt)
+- [`words-from-a-fable-by-m-twain`](https://gist.githubusercontent.com/akgondber/6f11f6adf882f5e1d6954abbf85b60c8/raw/5e9d071771634b1795b471bc4b1e3233e87fccb8/words.txt)
+- [`words-from-a-comedy-in-rubber-by-o-henry`](https://gist.githubusercontent.com/akgondber/5fc76ad2b737eea9dce73362381d9e3b/raw/eaec998fbd636a42d9387829204b7bf04949e78f/words.txt)
 
 You can create your own suites creating a gist (or any other hosting service you prefer), using any of the above links as an example.
 
